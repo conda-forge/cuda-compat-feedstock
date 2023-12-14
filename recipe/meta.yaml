@@ -1,6 +1,6 @@
 {% set name = "cuda-compat" %}
-{% set driver_version = "525.60.13" %}
-{% set cuda_version = "12.0.0" %}
+{% set driver_version = "530.30.02" %}
+{% set cuda_version = "12.1.1" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
 {% set platform = "linux-sbsa" %}  # [aarch64]
@@ -12,9 +12,9 @@ package:
 
 source:
   url: https://developer.download.nvidia.com/compute/cuda/redist/nvidia_driver/{{ platform }}/nvidia_driver-{{ platform }}-{{ driver_version }}-archive.{{ extension }}
-  sha256: a42691822f6e87060da5682a8e0662c86d1b20fbf31d12cb2969b819995e4138  # [linux64]
-  sha256: 4ad08f8431195580349f4984fae2d93697d2f5572837c1e7ae59c37feab291c8  # [ppc64le]
-  sha256: 1708ae3ba857559cbfc4e6c06267ed6126eff2c68fa5321a95906f50e984148c  # [aarch64]
+  sha256: db30bba7b44458b2de2e0fb13d335b9eec5886034bde5999dffba23bc4e198ee  # [linux64]
+  sha256: a5b51d096c36b962c424038bae2279975bc2ccd3caaf7c68fabd67302973b1cc  # [ppc64le]
+  sha256: a16bfd2ac3cbe16bee5da5c85254a64352cc7bd6a17400db1b65ad692b6ad100  # [aarch64]
 
 build:
   number: 0
@@ -88,4 +88,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - adibbley
+    - conda-forge/cuda
