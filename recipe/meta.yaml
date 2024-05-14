@@ -17,7 +17,7 @@ source:
   sha256: b39a8cb837fe3846284d89ab2202e93b14804349d3fc9aa8a8384fd2759ec2f5  # [aarch64]
 
 build:
-  number: 1
+  number: 2
   skip: true  # [osx or win]
   script_env:
     - DRV_VERSION={{ driver_version }}
@@ -50,6 +50,7 @@ outputs:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
+        - {{ stdlib("c") }}
     test:
       commands:
         - test -f $PREFIX/cuda-compat/libcuda.so.{{ driver_version }}
