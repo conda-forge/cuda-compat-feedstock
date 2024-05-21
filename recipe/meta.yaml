@@ -1,6 +1,6 @@
 {% set name = "cuda-compat" %}
-{% set driver_version = "550.54.15" %}
-{% set cuda_version = "12.4.1" %}
+{% set driver_version = "555.42.02" %}
+{% set cuda_version = "12.5.0" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
 {% set platform = "linux-sbsa" %}  # [aarch64]
@@ -12,13 +12,12 @@ package:
 
 source:
   url: https://developer.download.nvidia.com/compute/cuda/redist/nvidia_driver/{{ platform }}/nvidia_driver-{{ platform }}-{{ driver_version }}-archive.{{ extension }}
-  sha256: e1416ebc1e7b4a14d393ca584e3f9c5e22f9750f4ba502a8ba2c5c5ad943bbb5  # [linux64]
-  sha256: ae53576c73f16084f3975aad254ee756e524525b1ca6d72d49d6e4b33083d818  # [ppc64le]
-  sha256: b39a8cb837fe3846284d89ab2202e93b14804349d3fc9aa8a8384fd2759ec2f5  # [aarch64]
+  sha256: d2febb882866440e059b0b96c6a79790bfc75d300acba2dc78bf1d507f576ff8  # [linux64]
+  sha256: dcd1b4620f5c8807888af20fed64e7789ff7e2f8bb7337441d5a1969431944a0  # [aarch64]
 
 build:
-  number: 2
-  skip: true  # [osx or win]
+  number: 0
+  skip: true  # [osx or win or ppc64le]
   script_env:
     - DRV_VERSION={{ driver_version }}
 
