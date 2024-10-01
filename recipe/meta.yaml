@@ -1,6 +1,6 @@
 {% set name = "cuda-compat" %}
 {% set driver_version = "560.35.03" %}
-{% set cuda_version = "12.6.1" %}
+{% set cuda_version = "12.6.2" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
 {% set platform = "linux-sbsa" %}  # [aarch64]
