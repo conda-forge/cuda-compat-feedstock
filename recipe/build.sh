@@ -4,6 +4,8 @@
 [[ -d lib64 ]] && mv lib64 lib
 mkdir -p ${PREFIX}/cuda-compat
 
+check-glibc lib/*.so.*
+
 cp -v lib/libcuda.so.${DRV_VERSION} ${PREFIX}/cuda-compat
 ln -sv libcuda.so.${DRV_VERSION} ${PREFIX}/cuda-compat/libcuda.so.1
 ln -sv libcuda.so.1 ${PREFIX}/cuda-compat/libcuda.so
@@ -14,5 +16,3 @@ cp -v lib/libnvidia-ptxjitcompiler.so.${DRV_VERSION} ${PREFIX}/cuda-compat
 ln -sv libnvidia-ptxjitcompiler.so.${DRV_VERSION} ${PREFIX}/cuda-compat/libnvidia-ptxjitcompiler.so.1
 cp -v lib/libcudadebugger.so.${DRV_VERSION} ${PREFIX}/cuda-compat
 ln -sv libcudadebugger.so.${DRV_VERSION} ${PREFIX}/cuda-compat/libcudadebugger.so.1
-
-check-glibc "$PREFIX"/lib*/*.so.* "$PREFIX"/bin/* "$PREFIX"/targets/*/lib*/*.so.* "$PREFIX"/targets/*/bin/*
