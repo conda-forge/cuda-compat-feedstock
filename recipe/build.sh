@@ -4,6 +4,8 @@
 [[ -d lib64 ]] && mv lib64 lib
 mkdir -p ${PREFIX}/cuda-compat
 
+check-glibc lib/*.so.*
+
 cp -v lib/libcuda.so.${DRV_VERSION} ${PREFIX}/cuda-compat
 ln -sv libcuda.so.${DRV_VERSION} ${PREFIX}/cuda-compat/libcuda.so.1
 ln -sv libcuda.so.1 ${PREFIX}/cuda-compat/libcuda.so

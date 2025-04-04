@@ -7,7 +7,7 @@
 {% set extension = "tar.xz" %}  # [not win]
 
 package:
-  name: {{ name|lower }}
+  name: {{ name|lower }}-split
   version: {{ cuda_version }}
 
 source:
@@ -16,13 +16,18 @@ source:
   sha256: 0edad79f9f52818d4b03bcc06ee4ef2ea81136330381347696fd3f804087f54b  # [aarch64]
 
 build:
-  number: 0
+  number: 1
   skip: true  # [osx or win or ppc64le]
   script_env:
     - DRV_VERSION={{ driver_version }}
 
+requirements:
+  build:
+    - cf-nvidia-tools 1.*  # [linux]
+
 outputs:
   - name: cuda-compat
+
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
@@ -36,9 +41,9 @@ outputs:
       license_url: https://docs.nvidia.com/cuda/eula/index.html
       summary: CUDA Compatibility Platform
       description: |
-          Package containing all the necessary CUDA driver files related to forward
-          compatibility. This compatibility enables newer CUDA runtimes to work with
-          older display drivers. Used for Tesla cards only.
+        Package containing all the necessary CUDA driver files related to forward
+        compatibility. This compatibility enables newer CUDA runtimes to work with
+        older display drivers. Used for Tesla cards only.
       doc_url: https://docs.nvidia.com/cuda/index.html
 
   - name: cuda-compat-impl
@@ -69,9 +74,9 @@ outputs:
       license_url: https://docs.nvidia.com/cuda/eula/index.html
       summary: CUDA Compatibility Platform
       description: |
-          Package containing all the necessary CUDA driver files related to forward
-          compatibility. This compatibility enables newer CUDA runtimes to work with
-          older display drivers. Used for Tesla cards only.
+        Package containing all the necessary CUDA driver files related to forward
+        compatibility. This compatibility enables newer CUDA runtimes to work with
+        older display drivers. Used for Tesla cards only.
       doc_url: https://docs.nvidia.com/cuda/index.html
 
 about:
@@ -81,11 +86,12 @@ about:
   license_url: https://docs.nvidia.com/cuda/eula/index.html
   summary: CUDA Compatibility Platform
   description: |
-      Package containing all the necessary CUDA driver files related to forward
-      compatibility. This compatibility enables newer CUDA runtimes to work with
-      older display drivers. Used for Tesla cards only.
+    Package containing all the necessary CUDA driver files related to forward
+    compatibility. This compatibility enables newer CUDA runtimes to work with
+    older display drivers. Used for Tesla cards only.
   doc_url: https://docs.nvidia.com/cuda/index.html
 
 extra:
+  feedstock-name: cuda-compat
   recipe-maintainers:
     - conda-forge/cuda
