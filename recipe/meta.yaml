@@ -18,6 +18,8 @@ source:
 build:
   number: 1
   skip: true  # [osx or win or ppc64le]
+  script_env:
+    - DRV_VERSION={{ driver_version }}
 
 requirements:
   build:
@@ -25,9 +27,7 @@ requirements:
 
 outputs:
   - name: cuda-compat
-    build:
-      script_env:
-        - DRV_VERSION={{ driver_version }}
+
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
