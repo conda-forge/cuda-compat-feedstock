@@ -1,6 +1,6 @@
 {% set name = "cuda-compat" %}
-{% set driver_version = "580.82.07" %}
-{% set cuda_version = "13.0.1" %}
+{% set driver_version = "580.95.05" %}
+{% set cuda_version = "13.0.2" %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
 {% set platform = "linux-sbsa" %}  # [aarch64]
@@ -12,8 +12,8 @@ package:
 
 source:
   url: https://developer.download.nvidia.com/compute/cuda/redist/nvidia_driver/{{ platform }}/nvidia_driver-{{ platform }}-{{ driver_version }}-archive.{{ extension }}
-  sha256: 290f7fa5b48b153ed9b0711f6deff9075fa39c08348a38a6fc349da1500156c8  # [linux64]
-  sha256: d435966c7ec512d4c723ffce4d722af1076803b29becba39ef4a27cdecd3d924  # [aarch64]
+  sha256: 3528df4fb0c7a1665ae2af5d26effeb67f76fc86742ffc1defd7714408405d4d  # [linux64]
+  sha256: 95b52919632928d7a245e5696b71cd68285e6bffd1f22cdcd4f9686d5d5b0b09  # [aarch64]
 
 build:
   number: 0
