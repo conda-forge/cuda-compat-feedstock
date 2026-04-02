@@ -17,7 +17,7 @@ source:
   sha256: 03f561d067b60cb64cad3dfac4b9c5e284a14815d1158aa732eb156cc658abbd  # [aarch64]
 
 build:
-  number: 0
+  number: 1
   skip: true  # [osx or win or ppc64le]
   script_env:
     - DRV_VERSION={{ driver_version }}
@@ -28,7 +28,9 @@ requirements:
 
 outputs:
   - name: cuda-compat
-
+    files:
+      - etc/conda/activate.d/cuda-compat_activate.sh
+      - etc/conda/deactivate.d/cuda-compat_deactivate.sh
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
