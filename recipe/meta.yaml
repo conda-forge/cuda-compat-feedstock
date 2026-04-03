@@ -56,8 +56,9 @@ outputs:
     requirements:
       build:
         - {{ compiler("c") }}
-        - {{ compiler("cxx") }}
         - {{ stdlib("c") }}
+      host:
+        - openssl
     test:
       commands:
         - test -f $PREFIX/cuda-compat/libcuda.so.{{ driver_version }}
@@ -70,6 +71,10 @@ outputs:
         - test -L $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.1
         - test -f $PREFIX/cuda-compat/libcudadebugger.so.{{ driver_version }}
         - test -L $PREFIX/cuda-compat/libcudadebugger.so.1
+        - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ driver_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-nvvm70.so.4
+        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11-openssl3.so.{{ driver_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-tileiras.so.{{ driver_version }}
     about:
       home: https://developer.nvidia.com/cuda-toolkit
       license_file: LICENSE
