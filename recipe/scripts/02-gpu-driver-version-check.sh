@@ -1,0 +1,67 @@
+#!/bin/bash
+# Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+# Compares the detected kernel-mode driver (KMD) version against the compat UMD
+# version and the set of supported KMD versions.  Three outcomes are possible:
+#   - KMD >= compat UMD major: system driver is sufficient; deactivate cuda-compat
+#   - KMD in SUPPORTED_KMD_VERSIONS: forward compatibility is active; silent success
+#   - KMD not in list and older than compat UMD: unsupported; activation fails
+# Skipped entirely when NVIDIA_CPU_ONLY=1 (set by 01-gpu-driver-check.sh).
+#
+# Reads:
+#   NVIDIA_CPU_ONLY           Skip check if 1 (no driver present)
+#   COMPAT_CUDA_VERSION       UMD CUDA version bundled in this package
+#   COMPAT_DRV_VERSION        UMD driver version bundled in this package
+#   SUPPORTED_KMD_VERSIONS    Comma-separated list of supported KMD major versions
+#
+# Exports:
+#   _CUDA_COMPAT_NOT_NEEDED        1 = KMD >= compat UMD; system driver suffices; symlinks removed
+#   _CUDA_COMPAT_ACTIVATION_FAILED 1 = KMD is unsupported; environment is not recoverable
+
+if [ "${NVIDIA_CPU_ONLY:-0}" -eq 0 ]; then
+  _KMD_VERSION=$(nvidia-smi -i 0 --query-gpu=driver_version --format=csv,noheader 2>/dev/null || true)
+
+  if [[ "${_KMD_VERSION}" == "[N/A]" ]]; then
+    _KMD_VERSION=$(sed -n 's/^NVRM.*Kernel Module\( for [a-z0-9_]*\| \) *\([^() ]*\).*$/\2/p' /proc/driver/nvidia/version 2>/dev/null || true)
+  fi
+
+  _KMD_VERSION_MAJOR=$(echo "${_KMD_VERSION}" | cut -d. -f1)
+  _COMPAT_DRV_MAJOR=$(echo "${COMPAT_DRV_VERSION}" | cut -d. -f1)
+
+  _SUPPORTED=0
+  IFS=',' read -ra _SUPPORTED_KMDS <<< "${SUPPORTED_KMD_VERSIONS}"
+  for _v in "${_SUPPORTED_KMDS[@]}"; do
+    if [[ "${_KMD_VERSION_MAJOR}" -eq "${_v}" ]]; then
+      _SUPPORTED=1
+      break
+    fi
+  done
+  unset _SUPPORTED_KMDS _v
+
+  if [[ ! "${_KMD_VERSION}" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+    echo
+    echo "WARNING: Failed to detect NVIDIA driver version."
+
+  elif [[ "${_KMD_VERSION_MAJOR}" -ge "${_COMPAT_DRV_MAJOR}" ]]; then
+    echo
+    echo "NOTE: The installed NVIDIA Driver (${_KMD_VERSION}) is at least as new as the cuda-compat"
+    echo "      UMD (${COMPAT_DRV_VERSION}).  The system driver is sufficient; cuda-compat will not"
+    echo "      be activated and its symlinks will be removed.  Ensure the system provides"
+    echo "      libcuda.so.1 on the library search path."
+    export _CUDA_COMPAT_NOT_NEEDED=1
+
+  elif [[ "${_SUPPORTED}" -eq 0 ]]; then
+    _SUPPORTED_LIST="${SUPPORTED_KMD_VERSIONS//,/, }"
+    echo
+    echo "ERROR: cuda-compat ${COMPAT_CUDA_VERSION} requires NVIDIA Driver ${_SUPPORTED_LIST}, but"
+    echo "       version ${_KMD_VERSION} was detected."
+    echo "       Forward compatibility is only available on Tesla/data-center GPUs with a"
+    echo "       supported driver.  See https://docs.nvidia.com/deploy/cuda-compatibility/"
+    unset _SUPPORTED_LIST
+    export _CUDA_COMPAT_ACTIVATION_FAILED=1
+    sleep 2
+
+  fi
+
+  unset _KMD_VERSION _KMD_VERSION_MAJOR _COMPAT_DRV_MAJOR _SUPPORTED
+fi

@@ -20,7 +20,13 @@ build:
   number: 1
   skip: true  # [osx or win or ppc64le]
   script_env:
-    - DRV_VERSION={{ driver_version }}
+    - COMPAT_DRV_VERSION={{ driver_version }}
+    - COMPAT_CUDA_VERSION={{ cuda_version }}
+    # The cuda-compat UMD is not compatible with every KMD. We implement an install-time
+    # check using __cuda run constraints below. However, we also do runtime checks in case
+    # the system administrator updates the KMD after the conda environment is created.
+    # https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html#id1
+    - SUPPORTED_KMD_VERSIONS=535,550,570,580,590
 
 requirements:
   build:
@@ -31,6 +37,7 @@ outputs:
     files:
       - etc/conda/activate.d/cuda-compat_activate.sh
       - etc/conda/deactivate.d/cuda-compat_deactivate.sh
+      - etc/cuda-compat/
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
@@ -57,8 +64,16 @@ outputs:
       build:
         - {{ compiler("c") }}
         - {{ stdlib("c") }}
-      host:
-        - openssl
+      run_constrained:
+        # The cuda-compat UMD is not compatible with every KMD. These constraints are an
+        # install-time check that the user has the correct KDM for compat to be supported.
+        # However, we also do runtime checks in case the system administrator updates the
+        # KMD after the conda environment is created.
+        # https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html#id1
+        - __cuda 12.2|12.4|12.8|13.0|13.1
+        # There is no point to updating across major CUDA versions if the device is not
+        # supported by newer toolkit.
+        - __cuda_arch >=7.5
     test:
       commands:
         - test -f $PREFIX/cuda-compat/libcuda.so.{{ driver_version }}
@@ -73,7 +88,6 @@ outputs:
         - test -L $PREFIX/cuda-compat/libcudadebugger.so.1
         - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ driver_version }}
         - test -f $PREFIX/cuda-compat/libnvidia-nvvm70.so.4
-        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11-openssl3.so.{{ driver_version }}
         - test -f $PREFIX/cuda-compat/libnvidia-tileiras.so.{{ driver_version }}
     about:
       home: https://developer.nvidia.com/cuda-toolkit
