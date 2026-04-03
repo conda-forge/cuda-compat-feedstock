@@ -1,8 +1,8 @@
 #!/bin/bash
 
 CONDA_PREFIX="${CONDA_PREFIX:=$PREFIX}"
-COMPAT_CUDA_VERSION=@cuda_compat_version@
-COMPAT_DRV_VERSION=@cuda_drv_version@
+COMPAT_CUDA_VERSION=@compat_cuda_version@
+COMPAT_DRV_VERSION=@compat_drv_version@
 SUPPORTED_KMD_VERSIONS=@supported_kmd_versions@
 
 # Link cuda-compat libraries into ${CONDA_PREFIX}/lib so they are on the

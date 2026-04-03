@@ -52,6 +52,7 @@ if [ "${NVIDIA_CPU_ONLY:-0}" -eq 0 ]; then
 
   elif [[ "${_SUPPORTED}" -eq 0 ]]; then
     _SUPPORTED_LIST="${SUPPORTED_KMD_VERSIONS//,/, }"
+    _SUPPORTED_LIST="${_SUPPORTED_LIST%, *}, or ${_SUPPORTED_LIST##*, }"
     echo
     echo "ERROR: cuda-compat ${COMPAT_CUDA_VERSION} requires NVIDIA Driver ${_SUPPORTED_LIST}, but"
     echo "       version ${_KMD_VERSION} was detected."
