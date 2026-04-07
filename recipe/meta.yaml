@@ -68,9 +68,12 @@ outputs:
       build:
         - {{ compiler("c") }}
         - {{ stdlib("c") }}
+      run:
+        # Because Orin migrated to sbsa in CTK 13, the arm-variant must always be sbsa
+        - arm-variant * sbsa  # [linux and aarch64]
       run_constrained:
         # The cuda-compat UMD is not compatible with every KMD. These constraints are an
-        # install-time check that the user has the correct KDM for compat to be supported.
+        # install-time check that the user has the correct KMD for compat to be supported.
         # However, we also do runtime checks in case the system administrator updates the
         # KMD after the conda environment is created.
         # https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html#id1
