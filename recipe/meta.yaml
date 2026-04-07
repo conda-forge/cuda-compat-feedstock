@@ -1,5 +1,6 @@
 {% set name = "cuda-compat" %}
-{% set driver_version = "595.45.04" %}
+{% set driver_version = "595.45.04" %}  # [arm_variant_type != "tegra"]
+{% set driver_version = "13.2.44290101" %}  # [arm_variant_type == "tegra"]
 {% set cuda_version = "13.2.0" %}
 {% set cuda_major_minor = cuda_version.split('.')[:2] | join('.') %}
 {% set platform = "linux-x86_64" %}  # [linux64]
@@ -12,15 +13,24 @@ package:
   version: {{ cuda_version }}
 
 source:
-  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_compat/{{ platform }}/cuda_compat-{{ platform }}-{{ driver_version }}_cuda{{ cuda_major_minor }}-archive.{{ extension }}
-  sha256: f1a9cfd13396d78ddef6dfe5fa6fdeb783a66fa1f4c36494ae2fa7fd9caa9fda  # [linux64]
-  sha256: 03f561d067b60cb64cad3dfac4b9c5e284a14815d1158aa732eb156cc658abbd  # [aarch64]
+  - url: "https://developer.download.nvidia.com/compute/cuda/redist/cuda_compat/linux-x86_64/cuda_compat-linux-x86_64-{{ driver_version }}_cuda13.2-archive.tar.xz"  # [linux and x86_64 ]
+    sha256: "f1a9cfd13396d78ddef6dfe5fa6fdeb783a66fa1f4c36494ae2fa7fd9caa9fda"  # [linux and x86_64 ]
+  - url: "https://developer.download.nvidia.com/compute/cuda/redist/cuda_compat/linux-sbsa/cuda_compat-linux-sbsa-{{ driver_version }}_cuda13.2-archive.tar.xz"  # [linux and aarch64  and arm_variant_type == "sbsa"]
+    sha256: "03f561d067b60cb64cad3dfac4b9c5e284a14815d1158aa732eb156cc658abbd"  # [linux and aarch64  and arm_variant_type == "sbsa"]
+  - url: "https://developer.download.nvidia.com/compute/cuda/redist/cuda_compat_orin/linux-sbsa/cuda_compat_orin-linux-sbsa-{{ driver_version }}-archive.tar.xz"  # [linux and aarch64 and arm_variant_type == "tegra"]
+    sha256: "b0ec7b8bead478f3e9a7cbb1bab8b15742778fe51bd9b32f51544903a74111f9"  # [linux and aarch64 and arm_variant_type == "tegra"]
 
 build:
-  number: 0
+  number: 1
   skip: true  # [osx or win or ppc64le]
   script_env:
-    - DRV_VERSION={{ driver_version }}
+    - COMPAT_DRV_VERSION={{ driver_version }}
+    - COMPAT_CUDA_VERSION={{ cuda_version }}
+    # The cuda-compat UMD is not compatible with every KMD. We implement an install-time
+    # check using __cuda run constraints below. However, we also do runtime checks in case
+    # the system administrator updates the KMD after the conda environment is created.
+    # https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html#id1
+    - SUPPORTED_KMD_VERSIONS=535,550,570,580,590
 
 requirements:
   build:
@@ -28,7 +38,10 @@ requirements:
 
 outputs:
   - name: cuda-compat
-
+    files:
+      - etc/conda/activate.d/cuda-compat_activate.sh
+      - etc/conda/deactivate.d/cuda-compat_deactivate.sh
+      - etc/cuda-compat/
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
@@ -54,8 +67,22 @@ outputs:
     requirements:
       build:
         - {{ compiler("c") }}
-        - {{ compiler("cxx") }}
         - {{ stdlib("c") }}
+      run:
+        # Because Orin migrated to sbsa in CTK 13, the arm-variant must always be sbsa
+        - arm-variant * sbsa  # [linux and aarch64]
+      run_constrained:
+        # The cuda-compat UMD is not compatible with every KMD. These constraints are an
+        # install-time check that the user has the correct KMD for compat to be supported.
+        # However, we also do runtime checks in case the system administrator updates the
+        # KMD after the conda environment is created.
+        # https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html#id1
+        - __cuda 12.2|12.4|12.8|13.0|13.1
+        # There is no point to updating across major CUDA versions if the device is not
+        # supported by newer toolkit. Only the tegra variant of this package is available
+        # for Orin devices.
+        - __cuda_arch >=7.5,!=8.7.*  # [arm_variant_type != "tegra"]
+        - __cuda_arch 8.7.*  # [arm_variant_type == "tegra"]
     test:
       commands:
         - test -f $PREFIX/cuda-compat/libcuda.so.{{ driver_version }}
@@ -68,6 +95,9 @@ outputs:
         - test -L $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.1
         - test -f $PREFIX/cuda-compat/libcudadebugger.so.{{ driver_version }}
         - test -L $PREFIX/cuda-compat/libcudadebugger.so.1
+        - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ driver_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-nvvm70.so.4
+        - test -f $PREFIX/cuda-compat/libnvidia-tileiras.so.{{ driver_version }}
     about:
       home: https://developer.nvidia.com/cuda-toolkit
       license_file: LICENSE
