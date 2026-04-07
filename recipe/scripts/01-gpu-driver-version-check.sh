@@ -1,12 +1,18 @@
 #!/bin/bash
 # Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
-# Compares the detected kernel-mode driver (KMD) version against the compat UMD
-# version and the set of supported KMD versions.  Three outcomes are possible:
-#   - KMD >= compat UMD major: system driver is sufficient; deactivate cuda-compat
-#   - KMD in SUPPORTED_KMD_VERSIONS: forward compatibility is active; silent success
-#   - KMD not in list and older than compat UMD: unsupported; activation fails
-# Skipped entirely when NVIDIA_CPU_ONLY=1 (set by 01-gpu-driver-check.sh).
+# Determines whether cuda-compat forward compatibility is needed and supported by
+# comparing the installed KMD version against the compat UMD version and the set
+# of certified KMD versions.  Three outcomes are possible:
+#
+#   KMD version undetectable   → WARNING; activation proceeds optimistically
+#   KMD major >= UMD major     → NOTE; system driver is sufficient; skip activation
+#   KMD major in supported set → silent success; forward compat will be active
+#   KMD major not in set       → ERROR; KMD is unsupported; activation aborted
+#
+# KMD version is read from nvidia-smi, with /proc/driver/nvidia/version as fallback.
+# Skipped entirely when NVIDIA_CPU_ONLY=1 (set by 00-gpu-driver-check.sh).
+# Runs before any symlinks are created so that failures leave no filesystem changes.
 #
 # Reads:
 #   NVIDIA_CPU_ONLY           Skip check if 1 (no driver present)
@@ -15,8 +21,8 @@
 #   SUPPORTED_KMD_VERSIONS    Comma-separated list of supported KMD major versions
 #
 # Exports:
-#   _CUDA_COMPAT_NOT_NEEDED        1 = KMD >= compat UMD; system driver suffices; symlinks removed
-#   _CUDA_COMPAT_ACTIVATION_FAILED 1 = KMD is unsupported; environment is not recoverable
+#   _CUDA_COMPAT_NOT_NEEDED        1 = KMD >= compat UMD; system driver suffices; activation skipped
+#   _CUDA_COMPAT_ACTIVATION_FAILED 1 = KMD is unsupported; activation aborted
 
 if [ "${NVIDIA_CPU_ONLY:-0}" -eq 0 ]; then
   _KMD_VERSION=$(nvidia-smi -i 0 --query-gpu=driver_version --format=csv,noheader 2>/dev/null || true)
@@ -46,8 +52,7 @@ if [ "${NVIDIA_CPU_ONLY:-0}" -eq 0 ]; then
     echo
     echo "NOTE: The installed NVIDIA Driver (${_KMD_VERSION}) is at least as new as the cuda-compat"
     echo "      UMD (${COMPAT_DRV_VERSION}).  The system driver is sufficient; cuda-compat will not"
-    echo "      be activated and its symlinks will be removed.  Ensure the system provides"
-    echo "      libcuda.so.1 on the library search path."
+    echo "      be activated.  Ensure the system provides libcuda.so.1 on the library search path."
     export _CUDA_COMPAT_NOT_NEEDED=1
 
   elif [[ "${_SUPPORTED}" -eq 0 ]]; then
@@ -56,7 +61,7 @@ if [ "${NVIDIA_CPU_ONLY:-0}" -eq 0 ]; then
     echo
     echo "ERROR: cuda-compat ${COMPAT_CUDA_VERSION} requires NVIDIA Driver ${_SUPPORTED_LIST}, but"
     echo "       version ${_KMD_VERSION} was detected."
-    echo "       Forward compatibility is only available on Tesla/data-center GPUs with a"
+    echo "       Forward compatibility is only available on Tegra Orin and Tesla/data-center GPUs with a"
     echo "       supported driver.  See https://docs.nvidia.com/deploy/cuda-compatibility/"
     unset _SUPPORTED_LIST
     export _CUDA_COMPAT_ACTIVATION_FAILED=1

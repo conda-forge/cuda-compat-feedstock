@@ -1,10 +1,12 @@
 #!/bin/bash
 # Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
-# Check that the cuda-compat user-mode driver symlinks in $CONDA_PREFIX/lib
-# take precedence over the system-installed libcuda.so.1.  This must run
-# before the GPU-presence and driver-version checks (01-02) since those
-# checks are only meaningful when the correct UMD is on the search path.
+# Verifies that the cuda-compat UMD symlink in $CONDA_PREFIX/lib/libcuda.so.1
+# exists, resolves into $CONDA_PREFIX/cuda-compat/, and is not shadowed by a
+# system libcuda.so.1 earlier in LD_LIBRARY_PATH.  Runs after symlinks are
+# created and after scripts 00-01 have confirmed that forward compatibility is
+# needed and supported.  A missing or wrong-target symlink is a hard failure;
+# LD_LIBRARY_PATH shadowing is a warning only.
 #
 # Exports:
 #   NVIDIA_COMPAT_PRECEDENCE_OK      1 = compat UMD is in place, 0 = not
