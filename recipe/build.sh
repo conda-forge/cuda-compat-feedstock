@@ -2,6 +2,12 @@
 
 set -ex
 
+# compat-orin has a different top-level dir
+[[ -d compat_orin ]]  && mv compat_orin compat
+
+# Remove the openSSL plugin to avoid dependency on openSSL
+find compat/ -name 'libnvidia-pkcs11-openssl3.so*' -delete
+
 # Install to conda style directories
 [[ -d lib64 ]] && mv lib64 lib
 mkdir -p "${PREFIX}/cuda-compat"
@@ -9,7 +15,6 @@ mkdir -p "${PREFIX}/cuda-compat"
 check-glibc compat/*.so.*
 
 cp -vd compat/* "${PREFIX}/cuda-compat/"
-rm -f "${PREFIX}/cuda-compat/libnvidia-pkcs11-openssl3.so"*
 
 # Copy the [de]activate scripts to $PREFIX/etc/conda/[de]activate.d.
 # This will allow them to be run on environment activation.

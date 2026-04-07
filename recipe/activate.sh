@@ -5,13 +5,17 @@ COMPAT_CUDA_VERSION=@compat_cuda_version@
 COMPAT_DRV_VERSION=@compat_drv_version@
 SUPPORTED_KMD_VERSIONS=@supported_kmd_versions@
 
-# Link cuda-compat libraries into ${CONDA_PREFIX}/lib so they are on the
-# default library search path when the environment is active.
-mkdir -p "${CONDA_PREFIX}/lib"
-for _lib in "${CONDA_PREFIX}/cuda-compat/"*; do
-    ln -sf "${_lib}" "${CONDA_PREFIX}/lib/$(basename "${_lib}")"
+# Link cuda-compat libraries into ${CONDA_PREFIX}/lib and binaries into
+# ${CONDA_PREFIX}/bin so they are on the default search paths.
+mkdir -p "${CONDA_PREFIX}/lib" "${CONDA_PREFIX}/bin"
+for _f in "${CONDA_PREFIX}/cuda-compat/"*; do
+    if [[ "${_f}" == *.so.* ]]; then
+        ln -sf "${_f}" "${CONDA_PREFIX}/lib/$(basename "${_f}")"
+    else
+        ln -sf "${_f}" "${CONDA_PREFIX}/bin/$(basename "${_f}")"
+    fi
 done
-unset _lib
+unset _f
 
 # Validate compat library precedence and driver compatibility.
 _COMPAT_SCRIPT_DIR="${CONDA_PREFIX}/etc/cuda-compat"
@@ -24,13 +28,17 @@ done
 unset _COMPAT_SCRIPT_DIR _script
 
 _remove_cuda_compat_symlinks() {
-    for _lib in "${CONDA_PREFIX}/cuda-compat/"*; do
-        _link="${CONDA_PREFIX}/lib/$(basename "${_lib}")"
-        if [ -L "${_link}" ] && [ "$(readlink "${_link}")" = "${_lib}" ]; then
+    for _f in "${CONDA_PREFIX}/cuda-compat/"*; do
+        if [[ "${_f}" == *.so.* ]]; then
+            _link="${CONDA_PREFIX}/lib/$(basename "${_f}")"
+        else
+            _link="${CONDA_PREFIX}/bin/$(basename "${_f}")"
+        fi
+        if [ -L "${_link}" ] && [ "$(readlink "${_link}")" = "${_f}" ]; then
             rm "${_link}"
         fi
     done
-    unset _lib _link
+    unset _f _link
 }
 
 # If the system driver is newer than the compat UMD, remove the symlinks silently
