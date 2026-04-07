@@ -1,5 +1,5 @@
 {% set name = "cuda-compat" %}
-{% set driver_version = "595.45.04" %} # [arm_variant_type != "tegra"]
+{% set driver_version = "595.45.04" %}  # [arm_variant_type != "tegra"]
 {% set driver_version = "13.2.44290101" %}  # [arm_variant_type == "tegra"]
 {% set cuda_version = "13.2.0" %}
 {% set cuda_major_minor = cuda_version.split('.')[:2] | join('.') %}
