@@ -53,6 +53,7 @@ outputs:
     build:
       # The libnvidia-pkcs11* libs optionally dlopen OpenSSL at runtime.
       missing_dso_allowlist:
+        - '*/libcuda.so*'
         - '*/libcrypto.so*'
     requirements:
       build:
