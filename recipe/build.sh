@@ -8,7 +8,4 @@ mkdir -p ${PREFIX}/cuda-compat
 
 check-glibc compat/*.so.*
 
-cp -vd compat/libcuda.so* ${PREFIX}/cuda-compat/
-cp -vd compat/libnvidia-nvvm.so* ${PREFIX}/cuda-compat/
-cp -vd compat/libnvidia-ptxjitcompiler.so* ${PREFIX}/cuda-compat/
-cp -vd compat/libcudadebugger.so* ${PREFIX}/cuda-compat/
+cp -vd compat/*.so* ${PREFIX}/cuda-compat/
