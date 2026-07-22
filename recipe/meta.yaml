@@ -73,8 +73,8 @@ outputs:
         - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ driver_version }}
         - test -f $PREFIX/cuda-compat/libnvidia-nvvm70.so.4
         - test -f $PREFIX/cuda-compat/libnvidia-nvvm.so.{{ driver_version }}
-        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11.so.{{ driver_version }}
-        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11-openssl3.so.{{ driver_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11.so.{{ driver_version }}           # [linux64]
+        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11-openssl3.so.{{ driver_version }}  # [linux64]
         - test -f $PREFIX/cuda-compat/libcudadebugger.so.{{ driver_version }}
         - test -L $PREFIX/cuda-compat/libcudadebugger.so.1
     about:
