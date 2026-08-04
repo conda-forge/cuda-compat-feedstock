@@ -17,8 +17,7 @@ older display drivers. Used for data center GPUs and, with the `tegra`
 variant, for Jetson devices still running a JetPack 6 / L4T driver.
 
 The libraries are installed in `$PREFIX/cuda-compat`, which is not on the loader path.
-Until this package ships an activation script, they are picked up only if that
-directory is prepended to `LD_LIBRARY_PATH`.
+They are picked up only if that directory is prepended to `LD_LIBRARY_PATH`.
 
 
 Current build status
