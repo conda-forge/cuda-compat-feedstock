@@ -14,12 +14,17 @@
 {% set compat_dir = "compat" %}
 {% set impl_version = driver_version %}
 
-# Tegra cannot reuse the SBSA archive: its libcuda is built against the L4T kernel driver and links
-# against the Tegra NVRM stack (libnvrm_gpu, libnvrm_mem, ...), which is absent on server ARM. NVIDIA
-# therefore ships the separate "cuda_compat_orin" redistributable, the only supported way to run a
-# CUDA 13 runtime on a Jetson Orin still on JetPack 6. Since CUDA 13 unified the Tegra and SBSA
-# toolkits it is published under the "linux-sbsa" platform directory, but it keeps its own layout:
-# it is versioned after the CUDA release instead of the driver, and it unpacks into "compat_orin".
+# Tegra cannot reuse the SBSA archive: its libcuda is built against the L4T kernel driver and
+# links against the Tegra NVRM stack (libnvrm_gpu, libnvrm_mem, ...), absent on server ARM.
+# NVIDIA therefore ships the separate "cuda_compat_orin" redistributable, the only supported
+# way to run a CUDA 13 runtime on a Jetson Orin still on JetPack 6.
+# Since CUDA 13 unified the Tegra and SBSA toolkits, it is published under the "linux-sbsa"
+# platform directory, but it keeps its own layout: it is versioned after the CUDA release
+# instead of the driver, and it unpacks into "compat_orin".
+#
+# Here "arm_variant_type" is only a build-time label telling which redistributable to download.
+# Unlike the CUDA 12 Tegra packages, this build produces sbsa binaries and does not depend on
+# the tegra "arm-variant", see the run requirements below.
 {% set component = "cuda_compat_orin" %}       # [aarch64 and arm_variant_type == "tegra"]
 {% set component_version = "13.3.45405995" %}  # [aarch64 and arm_variant_type == "tegra"]
 {% set compat_dir = "compat_orin" %}           # [aarch64 and arm_variant_type == "tegra"]
@@ -51,7 +56,6 @@ outputs:
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
-        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
         - exit 0
@@ -66,6 +70,10 @@ outputs:
         compatibility. This compatibility enables newer CUDA runtimes to work with
         older display drivers. Used for data center GPUs and, with the `tegra`
         variant, for Jetson devices still running a JetPack 6 / L4T driver.
+
+        The libraries are installed in `$PREFIX/cuda-compat`, which is not on the loader path.
+        Until this package ships an activation script, they are picked up only if that
+        directory is prepended to `LD_LIBRARY_PATH`.
       doc_url: https://docs.nvidia.com/cuda/index.html
 
   - name: cuda-compat-impl
@@ -73,9 +81,9 @@ outputs:
     files:
       - cuda-compat
     build:
-      # The libnvidia-pkcs11* libs optionally dlopen OpenSSL at runtime. The Tegra libs additionally
-      # link against the L4T NVRM stack and the DLA runtime, which ship with the JetPack BSP on the
-      # device and are resolved there through the system loader configuration.
+      # The libnvidia-pkcs11* libs optionally dlopen OpenSSL at runtime.
+      # The Tegra libs additionally link against the L4T NVRM stack and the DLA runtime, which
+      # ship with the JetPack BSP and are resolved there by the system loader configuration.
       missing_dso_allowlist:
         - '*/libcuda.so*'
         - '*/libcrypto.so*'
@@ -91,11 +99,28 @@ outputs:
         - {{ compiler("cxx") }}
         - {{ stdlib("c") }}
       run:
-        - arm-variant * {{ arm_variant_type }}  # [aarch64]
+        # Orin moved to the sbsa ABI in CTK 13, so the arm-variant must always be sbsa here.
+        # Requesting the tegra variant would make the package unsolvable together with the
+        # rest of the CUDA 13 stack, which is sbsa only on aarch64.
+        - arm-variant * sbsa  # [aarch64]
+      run_constrained:
+        # Both aarch64 builds depend on the same sbsa arm-variant and only differ by the device
+        # they target, so the compute capability is what tells the solver which one to pick.
+        # Orin is sm_87, and no discrete GPU shares that compute capability.
+        # The other build covers the data center GPUs.
+        # Its lower bound is the minimum architecture supported by CTK 13, since everything
+        # below Turing was dropped there and would gain nothing from a CUDA 13 compat.
+        #
+        # Keep in mind that "__cuda_arch" comes from CEP-46 and is not universally available:
+        # pixi and rattler detect it natively, while conda needs "nvidia-virtual-packages".
+        # A run_constrained on a missing virtual package is vacuously satisfied, so without it
+        # the two builds stay ambiguous and the solver is free to pick either one.
+        - __cuda_arch >=7.5,!=8.7.*  # [aarch64 and arm_variant_type != "tegra"]
+        - __cuda_arch 8.7.*          # [aarch64 and arm_variant_type == "tegra"]
     test:
       commands:
-        # The Tegra libcuda keeps the L4T SONAME libcuda.so.1.1 instead of being versioned after the
-        # driver, and libcudadebugger.so.1 is a regular file there rather than a symlink.
+        # The Tegra libcuda keeps the L4T SONAME libcuda.so.1.1 instead of being versioned
+        # after the driver, and libcudadebugger.so.1 is a regular file rather than a symlink.
         - test -f $PREFIX/cuda-compat/libcuda.so.{{ impl_version }}                      # [not (aarch64 and arm_variant_type == "tegra")]
         - test -f $PREFIX/cuda-compat/libcuda.so.1.1                                     # [aarch64 and arm_variant_type == "tegra"]
         - test -L $PREFIX/cuda-compat/libcuda.so.1
@@ -127,6 +152,10 @@ outputs:
         compatibility. This compatibility enables newer CUDA runtimes to work with
         older display drivers. Used for data center GPUs and, with the `tegra`
         variant, for Jetson devices still running a JetPack 6 / L4T driver.
+
+        The libraries are installed in `$PREFIX/cuda-compat`, which is not on the loader path.
+        Until this package ships an activation script, they are picked up only if that
+        directory is prepended to `LD_LIBRARY_PATH`.
       doc_url: https://docs.nvidia.com/cuda/index.html
 
 about:
@@ -140,6 +169,10 @@ about:
     compatibility. This compatibility enables newer CUDA runtimes to work with
     older display drivers. Used for data center GPUs and, with the `tegra`
     variant, for Jetson devices still running a JetPack 6 / L4T driver.
+
+    The libraries are installed in `$PREFIX/cuda-compat`, which is not on the loader path.
+    Until this package ships an activation script, they are picked up only if that
+    directory is prepended to `LD_LIBRARY_PATH`.
   doc_url: https://docs.nvidia.com/cuda/index.html
 
 extra:
