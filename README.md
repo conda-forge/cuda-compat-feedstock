@@ -13,7 +13,8 @@ Documentation: https://docs.nvidia.com/cuda/index.html
 
 Package containing all the necessary CUDA driver files related to forward
 compatibility. This compatibility enables newer CUDA runtimes to work with
-older display drivers. Used for Tesla cards only.
+older display drivers. Used for data center GPUs and, with the `tegra`
+variant, for Jetson devices still running a JetPack 6 / L4T driver.
 
 
 Current build status
