@@ -69,7 +69,7 @@ outputs:
       doc_url: https://docs.nvidia.com/cuda/index.html
 
   - name: cuda-compat-impl
-    version: {{ impl_version }}
+    version: "{{ impl_version }}"
     files:
       - cuda-compat
     build:
