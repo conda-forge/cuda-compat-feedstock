@@ -7,20 +7,40 @@
 {% set platform = "linux-sbsa" %}  # [aarch64]
 {% set extension = "tar.xz" %}  # [not win]
 
+# Discrete GPUs get forward compatibility from the "cuda_compat" redistributable, which is
+# versioned after the user-mode driver it ships.
+{% set component = "cuda_compat" %}
+{% set component_version = driver_version + "_cuda" + cuda_major_minor %}
+{% set compat_dir = "compat" %}
+{% set impl_version = driver_version %}
+
+# Tegra cannot reuse the SBSA archive: its libcuda is built against the L4T kernel driver and links
+# against the Tegra NVRM stack (libnvrm_gpu, libnvrm_mem, ...), which is absent on server ARM. NVIDIA
+# therefore ships the separate "cuda_compat_orin" redistributable, the only supported way to run a
+# CUDA 13 runtime on a Jetson Orin still on JetPack 6. Since CUDA 13 unified the Tegra and SBSA
+# toolkits it is published under the "linux-sbsa" platform directory, but it keeps its own layout:
+# it is versioned after the CUDA release instead of the driver, and it unpacks into "compat_orin".
+{% set component = "cuda_compat_orin" %}       # [aarch64 and arm_variant_type == "tegra"]
+{% set component_version = "13.3.45405995" %}  # [aarch64 and arm_variant_type == "tegra"]
+{% set compat_dir = "compat_orin" %}           # [aarch64 and arm_variant_type == "tegra"]
+{% set impl_version = "610.01" %}              # [aarch64 and arm_variant_type == "tegra"]
+
 package:
   name: {{ name|lower }}-split
   version: {{ cuda_version }}
 
 source:
-  url: https://developer.download.nvidia.com/compute/cuda/redist/cuda_compat/{{ platform }}/cuda_compat-{{ platform }}-{{ driver_version }}_cuda{{ cuda_major_minor }}-archive.{{ extension }}
+  url: https://developer.download.nvidia.com/compute/cuda/redist/{{ component }}/{{ platform }}/{{ component }}-{{ platform }}-{{ component_version }}-archive.{{ extension }}
   sha256: 39a959840ed06b37ccde9b84c083babe415160c6907517cefc463da6d7dc2342  # [linux64]
-  sha256: 98b044e17e3b9d7ef27ad9bfd231af966744c9fb05b70fb43b5a000dd087952b  # [aarch64]
+  sha256: 98b044e17e3b9d7ef27ad9bfd231af966744c9fb05b70fb43b5a000dd087952b  # [aarch64 and arm_variant_type == "sbsa"]
+  sha256: d9e7655f46c10eeda7c3652f4fce91825f2b446fab8976c4591bfd4b887e4c8d  # [aarch64 and arm_variant_type == "tegra"]
 
 build:
-  number: 1
+  number: 2
   skip: true  # [osx or win or ppc64le]
   script_env:
-    - DRV_VERSION={{ driver_version }}
+    - DRV_VERSION={{ impl_version }}
+    - COMPAT_DIR={{ compat_dir }}
 
 requirements:
   build:
@@ -31,6 +51,7 @@ outputs:
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
         - exit 0
@@ -43,41 +64,58 @@ outputs:
       description: |
         Package containing all the necessary CUDA driver files related to forward
         compatibility. This compatibility enables newer CUDA runtimes to work with
-        older display drivers. Used for Tesla cards only.
+        older display drivers. Used for data center GPUs and, with the `tegra`
+        variant, for Jetson devices still running a JetPack 6 / L4T driver.
       doc_url: https://docs.nvidia.com/cuda/index.html
 
   - name: cuda-compat-impl
-    version: {{ driver_version }}
+    version: {{ impl_version }}
     files:
       - cuda-compat
     build:
-      # The libnvidia-pkcs11* libs optionally dlopen OpenSSL at runtime.
+      # The libnvidia-pkcs11* libs optionally dlopen OpenSSL at runtime. The Tegra libs additionally
+      # link against the L4T NVRM stack and the DLA runtime, which ship with the JetPack BSP on the
+      # device and are resolved there through the system loader configuration.
       missing_dso_allowlist:
         - '*/libcuda.so*'
         - '*/libcrypto.so*'
+        - '*/libnvcuextend.so'      # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvdla_runtime.so'   # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvrm_gpu.so'        # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvrm_host1x.so'     # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvrm_mem.so'        # [aarch64 and arm_variant_type == "tegra"]
+        - '*/libnvrm_sync.so'       # [aarch64 and arm_variant_type == "tegra"]
     requirements:
       build:
         - {{ compiler("c") }}
         - {{ compiler("cxx") }}
         - {{ stdlib("c") }}
+      run:
+        - arm-variant * {{ arm_variant_type }}  # [aarch64]
     test:
       commands:
-        - test -f $PREFIX/cuda-compat/libcuda.so.{{ driver_version }}
+        # The Tegra libcuda keeps the L4T SONAME libcuda.so.1.1 instead of being versioned after the
+        # driver, and libcudadebugger.so.1 is a regular file there rather than a symlink.
+        - test -f $PREFIX/cuda-compat/libcuda.so.{{ impl_version }}                      # [not (aarch64 and arm_variant_type == "tegra")]
+        - test -f $PREFIX/cuda-compat/libcuda.so.1.1                                     # [aarch64 and arm_variant_type == "tegra"]
         - test -L $PREFIX/cuda-compat/libcuda.so.1
         - test -L $PREFIX/cuda-compat/libcuda.so
-        - test -f $PREFIX/cuda-compat/libnvidia-nvvm.so.{{ driver_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-nvvm.so.{{ impl_version }}
         - test -L $PREFIX/cuda-compat/libnvidia-nvvm.so.4
         - test -L $PREFIX/cuda-compat/libnvidia-nvvm.so
-        - test -f $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.{{ driver_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.{{ impl_version }}
         - test -L $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.1
-        - test -f $PREFIX/cuda-compat/libnvidia-tileiras.so.{{ driver_version }}
-        - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ driver_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-tileiras.so.{{ impl_version }}
+        - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ impl_version }}
         - test -f $PREFIX/cuda-compat/libnvidia-nvvm70.so.4
-        - test -f $PREFIX/cuda-compat/libnvidia-nvvm.so.{{ driver_version }}
-        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11.so.{{ driver_version }}           # [linux64]
-        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11-openssl3.so.{{ driver_version }}  # [linux64]
-        - test -f $PREFIX/cuda-compat/libcudadebugger.so.{{ driver_version }}
-        - test -L $PREFIX/cuda-compat/libcudadebugger.so.1
+        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11.so.{{ impl_version }}             # [linux64]
+        - test -f $PREFIX/cuda-compat/libnvidia-pkcs11-openssl3.so.{{ impl_version }}    # [linux64]
+        - test -f $PREFIX/cuda-compat/libcudadebugger.so.{{ impl_version }}              # [not (aarch64 and arm_variant_type == "tegra")]
+        - test -L $PREFIX/cuda-compat/libcudadebugger.so.1                               # [not (aarch64 and arm_variant_type == "tegra")]
+        - test -f $PREFIX/cuda-compat/libcudadebugger.so.1                               # [aarch64 and arm_variant_type == "tegra"]
+        # Only Tegra ships the cuDLA bridge and the NVRM interop shim.
+        - test -f $PREFIX/cuda-compat/libnvcudla.so                                      # [aarch64 and arm_variant_type == "tegra"]
+        - test -f $PREFIX/cuda-compat/libnvcuextend.so                                   # [aarch64 and arm_variant_type == "tegra"]
     about:
       home: https://developer.nvidia.com/cuda-toolkit
       license_file: LICENSE
@@ -87,7 +125,8 @@ outputs:
       description: |
         Package containing all the necessary CUDA driver files related to forward
         compatibility. This compatibility enables newer CUDA runtimes to work with
-        older display drivers. Used for Tesla cards only.
+        older display drivers. Used for data center GPUs and, with the `tegra`
+        variant, for Jetson devices still running a JetPack 6 / L4T driver.
       doc_url: https://docs.nvidia.com/cuda/index.html
 
 about:
@@ -99,7 +138,8 @@ about:
   description: |
     Package containing all the necessary CUDA driver files related to forward
     compatibility. This compatibility enables newer CUDA runtimes to work with
-    older display drivers. Used for Tesla cards only.
+    older display drivers. Used for data center GPUs and, with the `tegra`
+    variant, for Jetson devices still running a JetPack 6 / L4T driver.
   doc_url: https://docs.nvidia.com/cuda/index.html
 
 extra:

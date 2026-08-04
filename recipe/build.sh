@@ -6,6 +6,9 @@ set -ex
 [[ -d lib64 ]] && mv lib64 lib
 mkdir -p ${PREFIX}/cuda-compat
 
-check-glibc compat/*.so.*
+# The Tegra redistributable unpacks its libraries into compat_orin instead of compat.
+COMPAT_DIR="${COMPAT_DIR:-compat}"
 
-cp -vd compat/*.so* ${PREFIX}/cuda-compat/
+check-glibc ${COMPAT_DIR}/*.so*
+
+cp -vd ${COMPAT_DIR}/*.so* ${PREFIX}/cuda-compat/

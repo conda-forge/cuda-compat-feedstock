@@ -1,2 +1,9 @@
 c_stdlib_version:  # [linux]
   - "2.28"         # [linux]
+
+# Build both the SBSA (data center ARM) and the Tegra (Jetson) flavours of the
+# forward compatibility package. They come from different NVIDIA
+# redistributables and are mutually exclusive at install time via `arm-variant`.
+arm_variant_type:  # [aarch64]
+  - sbsa           # [aarch64]
+  - tegra          # [aarch64]
