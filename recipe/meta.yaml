@@ -58,8 +58,9 @@ requirements:
 outputs:
   - name: cuda-compat
     build:
-      force_use_keys:
-        - arm_variant_type  # [aarch64]
+      # The two aarch64 builds share name, version and dependencies, so the variant is spelled
+      # out in the build string to make it obvious which shim is installed.
+      string: {{ arm_variant_type }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [aarch64]
     requirements:
       run:
         - {{ pin_subpackage("cuda-compat-impl", exact=True) }}
@@ -87,8 +88,7 @@ outputs:
     files:
       - cuda-compat
     build:
-      force_use_keys:
-        - arm_variant_type  # [aarch64]
+      string: {{ arm_variant_type }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}  # [aarch64]
       # The libnvidia-pkcs11* libs optionally dlopen OpenSSL at runtime.
       # The Tegra libs additionally link against the L4T NVRM stack and the DLA runtime, which
       # ship with the JetPack BSP and are resolved there by the system loader configuration.
