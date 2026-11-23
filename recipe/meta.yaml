@@ -1,6 +1,6 @@
 {% set name = "cuda-compat" %}
-{% set driver_version = "615.71.10" %}
-{% set cuda_version = "13.4.3" %}
+{% set driver_version = "620.70.06" %}
+{% set cuda_version = "13.5.0" %}
 {% set cuda_major_minor = cuda_version.split('.')[:2] | join('.') %}
 {% set platform = "linux-x86_64" %}  # [linux64]
 {% set platform = "linux-ppc64le" %}  # [ppc64le]
@@ -13,8 +13,8 @@ package:
 
 source:
   url: https://developer.download.nvidia.com/compute/nvidia-driver/redist/cuda_compat/{{ platform }}/cuda_compat-{{ platform }}-{{ driver_version }}_cuda{{ cuda_major_minor }}-archive.{{ extension }}
-  sha256: 05c32b72f6e5955f20f78d6014977fd6bca2e26e53f316ed9f63460b158cf663  # [linux64]
-  sha256: 9009407b5735cc8f3d4aeef8b53f4081205171791c34958bd3addeb911e26d0f  # [aarch64]
+  sha256: b7333482bfa55d450c63e60fb8c40d3c26e676ac53fbc31c0b0f7321cf0bb3da  # [linux64]
+  sha256: 8fb793e20f9a1e252bee6b7caa0bab4e66d57b05e90bc39219cab060c91aa171  # [aarch64]
 
 build:
   number: 0
@@ -71,6 +71,7 @@ outputs:
         - test -f $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.{{ driver_version }}
         - test -L $PREFIX/cuda-compat/libnvidia-ptxjitcompiler.so.1
         - test -f $PREFIX/cuda-compat/libnvidia-tileiras.so.{{ driver_version }}
+        - test -L $PREFIX/cuda-compat/libnvidia-tileiras.so.1
         - test -f $PREFIX/cuda-compat/libnvidia-gpucomp.so.{{ driver_version }}
         - test -f $PREFIX/cuda-compat/libnvidia-nvvm70.so.4
         - test -f $PREFIX/cuda-compat/libnvidia-nvvm.so.{{ driver_version }}
